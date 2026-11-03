@@ -4,7 +4,7 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
 [![Gradio](https://img.shields.io/badge/Gradio-6.0+-orange.svg)](https://gradio.app/)
 [![License: CC0-1.0](https://img.shields.io/badge/License-CC0_1.0-lightgrey.svg)](https://creativecommons.org/publicdomain/zero/1.0/)
-[![Tests: 23 Passed](https://img.shields.io/badge/Tests-23%2F23%20Passed-brightgreen.svg)](tests/run_all_tests.py)
+[![Tests: 32 Passed](https://img.shields.io/badge/Tests-32%2F32%20Passed-brightgreen.svg)](tests/run_all_tests.py)
 [![Preservation: Bit-Exact](https://img.shields.io/badge/Preservation-100%25%20Bit--Exact-success.svg)](reports/phase_g_boundary_feathering_report.md)
 
 **MUESUM** is an enterprise-grade artificial intelligence platform engineered for the digital conservation, repair, and inpainting of cultural heritage artifacts degraded by physical tears, craquelure, liquid stains, mold spots, and fading.
@@ -18,7 +18,7 @@ Built upon **The Metropolitan Museum of Art Open Access Collection**, MUESUM com
 1. **100% Bit-Exact Authentic Preservation**:
    - In mask-guided restoration mode, authentic surviving substrate is mathematically locked:
      $$\forall (x, y) \notin \mathcal{M}, \quad I_{\text{restored}}(x, y) \equiv I_{\text{original}}(x, y) \implies \text{MAE} = 0.000000, \; \text{MaxDiff} = 0$$
-   - The neural network generates pixels *strictly* within the damaged region $\mathcal{M}$.
+   - Convolutions process the full raster for global context, while bit-exact preservation is strictly enforced post-hoc via mask-guided compositing.
 2. **Interior Boundary Seam Feathering (`src/feathering.py`)**:
    - Computes Euclidean distance transform $D(x, y)$ strictly *inside* the damage mask.
    - Smoothstep Hermite polynomial transitions ($3t^2 - 2t^3$) eliminate harsh border steps without leaking into authentic substrate.
@@ -76,8 +76,8 @@ Evaluated across the 40 untouched independent holdout artworks from The Metropol
 
 | Metric | Damaged Input | Baseline Model (Epoch 8) | Experimental Texture Model | Improvement (Exp vs Base) |
 |---|:---:|:---:|:---:|:---:|
-| **Mean PSNR** | 23.53 dB | 25.71 dB | **25.88 dB** | **+0.17 dB** |
-| **Mean SSIM** | 0.8651 | 0.8988 | **0.9022** | **+0.0034** |
+| **Mean PSNR** | 23.52 dB | 25.71 dB | **25.88 dB** | **+0.17 dB** |
+| **Mean SSIM** | 0.8919 | 0.8988 | **0.9022** | **+0.0034** |
 | **Mean MAE** | 10.42 | 6.81 | **6.64** | **-0.17** |
 | **Undamaged Preservation** | — | **100% Bit-Exact (0 diff)**| **100% Bit-Exact (0 diff)**| **0.000000 MAE** |
 | **Texture Mediums (Textiles/Photos/Ceramics)** | — | 26.53 dB | **27.67 dB** | **+1.14 dB** |
@@ -90,8 +90,8 @@ Evaluated across the 40 untouched independent holdout artworks from The Metropol
 Clone repository and install dependencies in Python 3.10+:
 
 ```bash
-git clone https://github.com/your-username/MUESUM.git
-cd MUESUM
+git clone https://github.com/Krishnanikhil-eng/muesum.git
+cd muesum
 pip install -r requirements.txt
 ```
 
