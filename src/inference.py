@@ -441,14 +441,14 @@ def unet_restore(inp_path: Union[str, Path], out_path: Union[str, Path], ckpt_pa
 # ──────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MUESUM Artwork Restoration Inference CLI")
-    parser.add_argument("--inp_path", required=True, help="Path to input damaged image")
-    parser.add_argument("--out_path", required=True, help="Path to save restored image")
-    parser.add_argument("--mask_path", default=None, help="Path to damage mask (required for mask_guided mode)")
-    parser.add_argument("--ckpt_path", default=None, help="Path to .pth checkpoint (optional)")
-    parser.add_argument("--mode", default="mask_guided", choices=["mask_guided", "raw_unet"], help="Restoration mode")
+    parser.add_argument("--inp_path", "--image", "--input", dest="inp_path", required=True, help="Path to input damaged image")
+    parser.add_argument("--out_path", "--output", "--out", dest="out_path", required=True, help="Path to save restored image")
+    parser.add_argument("--mask_path", "--mask", dest="mask_path", default=None, help="Path to damage mask (required for mask_guided mode)")
+    parser.add_argument("--ckpt_path", "--checkpoint", dest="ckpt_path", default=None, help="Path to .pth checkpoint (optional)")
+    parser.add_argument("--mode", "--blend_mode", dest="mode", default="mask_guided", choices=["mask_guided", "raw_unet"], help="Restoration mode")
     parser.add_argument("--feather_mode", default="feathered", choices=["feathered", "hard"], help="Boundary feather mode")
     parser.add_argument("--feather_radius", type=int, default=3, help="Interior feather radius in pixels (default: 3)")
-    parser.add_argument("--max_dim", type=int, default=1024, help="Maximum evaluation dimension (default: 1024)")
+    parser.add_argument("--max_dim", "--max_dimension", dest="max_dim", type=int, default=1024, help="Maximum evaluation dimension (default: 1024)")
     args = parser.parse_args()
 
     result = restore_artwork_pipeline(
