@@ -49,13 +49,19 @@ class ArtifactDataset(Dataset):
                  ext: str = 'jpg',
                  simulate: bool = False,
                  sim_seed: int = None,
-                 max_damage_types: int = 2):
+                 max_damage_types: int = 2,
+                 patch_size: int = 0,
+                 damage_aware_prob: float = 0.7,
+                 is_train: bool = True):
         self.clean_dir = Path(clean_dir)
         self.damaged_dir = Path(damaged_dir) if damaged_dir else None
         self.ext = ext
         self.simulate = simulate
         self.sim_seed = sim_seed
         self.max_damage_types = max_damage_types
+        self.patch_size = int(patch_size)
+        self.damage_aware_prob = float(damage_aware_prob)
+        self.is_train = bool(is_train)
 
         df = pd.read_csv(metadata_csv)
         if 'obj_id' not in df.columns:
@@ -75,8 +81,8 @@ class ArtifactDataset(Dataset):
         return len(self.ids)
 
     def _load_img_uint8(self, path: Path):
-        img = Image.open(str(path)).convert('RGB')
-        arr = np.array(img).astype(np.uint8)
+        with Image.open(str(path)) as img:
+            arr = np.array(img.convert('RGB')).astype(np.uint8)
         return arr
 
     def _find_damaged_path(self, damaged_dir: Path, obj: str):
@@ -134,7 +140,7 @@ class ArtifactDataset(Dataset):
             seed = None
             if self.sim_seed is not None:
                 seed = int(self.sim_seed) + int(idx)
-            damaged, mask = simulate_damage_strong(clean, seed=seed, max_damage_types=self.max_damage_types)
+            damaged, mask = simulate_damage_strong(clean, seed=seed, max_types=self.max_damage_types)
             # ensure mask is 0/1 single channel if returned
             if mask is not None:
                 mask_arr = (mask.astype(np.uint8) > 0).astype(np.uint8) * 255
@@ -176,8 +182,8 @@ class ArtifactDataset(Dataset):
 
             if mask_found is not None:
                 try:
-                    mimg = Image.open(str(mask_found)).convert('L')
-                    m_arr = np.array(mimg).astype(np.uint8)
+                    with Image.open(str(mask_found)) as mimg:
+                        m_arr = np.array(mimg.convert('L')).astype(np.uint8)
                     # normalize: if mask is 0/255, convert to 0/255; if 0/1 convert to 0/255
                     if m_arr.max() <= 1:
                         m_arr = (m_arr * 255).astype(np.uint8)
@@ -186,6 +192,54 @@ class ArtifactDataset(Dataset):
                     mask_arr = None
             else:
                 mask_arr = None
+
+        if self.patch_size > 0:
+            ps = self.patch_size
+            h, w = clean.shape[:2]
+
+            # Pad if image is smaller than patch size
+            pad_h = max(0, ps - h)
+            pad_w = max(0, ps - w)
+            if pad_h > 0 or pad_w > 0:
+                pt = pad_h // 2
+                pb = pad_h - pt
+                pl = pad_w // 2
+                pr = pad_w - pl
+                clean = np.pad(clean, ((pt, pb), (pl, pr), (0, 0)), mode='reflect')
+                damaged = np.pad(damaged, ((pt, pb), (pl, pr), (0, 0)), mode='reflect')
+                if mask_arr is not None:
+                    mask_arr = np.pad(mask_arr, ((pt, pb), (pl, pr)), mode='constant', constant_values=0)
+                h, w = clean.shape[:2]
+
+            # Select crop coordinates
+            if self.is_train:
+                picked_damage = False
+                if mask_arr is not None and np.random.rand() < self.damage_aware_prob:
+                    y_indices, x_indices = np.where(mask_arr > 0)
+                    if len(y_indices) > 0:
+                        idx_choice = np.random.randint(0, len(y_indices))
+                        cy = y_indices[idx_choice]
+                        cx = x_indices[idx_choice]
+                        top = max(0, min(h - ps, int(cy - ps // 2)))
+                        left = max(0, min(w - ps, int(cx - ps // 2)))
+                        picked_damage = True
+                if not picked_damage:
+                    top = np.random.randint(0, max(1, h - ps + 1))
+                    left = np.random.randint(0, max(1, w - ps + 1))
+            else:
+                top = (h - ps) // 2
+                left = (w - ps) // 2
+
+            clean_patch = clean[top:top+ps, left:left+ps]
+            damaged_patch = damaged[top:top+ps, left:left+ps]
+            inp = self.to_tensor(damaged_patch).float()
+            tgt = self.to_tensor(clean_patch).float()
+            mask_tensor = None
+            if mask_arr is not None:
+                mask_patch = mask_arr[top:top+ps, left:left+ps]
+                mask_tensor = torch.from_numpy(mask_patch[None, ...]).float() / 255.0
+
+            return inp, tgt, obj, (0, 0, 0, 0), (ps, ps), mask_tensor
 
         damaged_p, pad_info = pad_to_multiple_of_32(damaged)
         clean_p, _ = pad_to_multiple_of_32(clean)

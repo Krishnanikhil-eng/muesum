@@ -1,5 +1,6 @@
 # src/train_unet.py
 import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import argparse
 import sys
 from pathlib import Path
@@ -128,11 +129,53 @@ def write_metrics_csv(path, row=None, header=False):
     with open(path, 'a', newline='') as f:
         writer = csv.writer(f)
         if write_header:
-            writer.writerow(['epoch','train_loss','val_psnr','val_ssim','epoch_time_s'])
+            writer.writerow(['epoch','train_loss','val_loss','val_psnr','val_ssim','epoch_time_s'])
         if row is not None:
             if not hasattr(row, '__iter__') or isinstance(row, (str, bytes)):
                 row = [row]
             writer.writerow(row)
+
+def plot_loss_curves(csv_path, out_png):
+    try:
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        import pandas as pd
+        if not os.path.exists(csv_path):
+            return
+        df = pd.read_csv(csv_path)
+        if len(df) == 0:
+            return
+        fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+        axes[0].plot(df['epoch'], df['train_loss'], label='Train Loss', marker='o')
+        if 'val_loss' in df.columns:
+            axes[0].plot(df['epoch'], df['val_loss'], label='Val Loss', marker='s')
+        axes[0].set_title('Loss Curves')
+        axes[0].set_xlabel('Epoch')
+        axes[0].set_ylabel('Loss')
+        axes[0].legend()
+        axes[0].grid(True)
+
+        axes[1].plot(df['epoch'], df['val_psnr'], label='Val PSNR', color='green', marker='o')
+        axes[1].set_title('Validation PSNR (dB)')
+        axes[1].set_xlabel('Epoch')
+        axes[1].set_ylabel('PSNR (dB)')
+        axes[1].legend()
+        axes[1].grid(True)
+
+        axes[2].plot(df['epoch'], df['val_ssim'], label='Val SSIM', color='purple', marker='o')
+        axes[2].set_title('Validation SSIM')
+        axes[2].set_xlabel('Epoch')
+        axes[2].set_ylabel('SSIM')
+        axes[2].legend()
+        axes[2].grid(True)
+
+        plt.tight_layout()
+        ensure_dir(os.path.dirname(out_png))
+        plt.savefig(out_png, dpi=150)
+        plt.close()
+    except Exception as e:
+        print('Warning: Plotting curves failed:', e)
 
 # ---------------- training ----------------
 def train(args):
@@ -148,19 +191,34 @@ def train(args):
     torch.backends.cudnn.benchmark = True
 
     # Datasets: pass damaged dir(s) (may be same or different)
+    simulate_train = getattr(args, 'simulate', False) or (args.damaged_dir is None)
+    simulate_val = getattr(args, 'simulate', False) or (args.damaged_dir_val is None and args.damaged_dir is None)
+
+    patch_sz = getattr(args, 'patch_size', 256)
+    dmg_prob = getattr(args, 'damage_aware_prob', 0.7)
+
     train_ds = ArtifactDataset(
         clean_dir=args.clean_dir,
         metadata_csv=args.train_csv,
         damaged_dir=args.damaged_dir,
         ext=args.ext,
-        simulate=False
+        simulate=simulate_train,
+        sim_seed=args.seed,
+        max_damage_types=args.max_damage_types,
+        patch_size=patch_sz,
+        damage_aware_prob=dmg_prob,
+        is_train=True
     )
     val_ds = ArtifactDataset(
         clean_dir=args.clean_dir,
         metadata_csv=args.val_csv,
         damaged_dir=(args.damaged_dir_val if args.damaged_dir_val else args.damaged_dir),
         ext=args.ext,
-        simulate=False
+        simulate=simulate_val,
+        sim_seed=(args.seed + 1000 if args.seed is not None else None),
+        max_damage_types=args.max_damage_types,
+        patch_size=patch_sz,
+        is_train=False
     )
 
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True,
@@ -186,9 +244,41 @@ def train(args):
     scaler = torch.amp.GradScaler(enabled=torch.cuda.is_available())
 
     best_val_ssim = -1.0
+    start_epoch = 0
+    resume_path = getattr(args, 'resume', None)
+    if resume_path and os.path.exists(resume_path):
+        print(f"Resuming from checkpoint: {resume_path}")
+        ckpt_data = torch.load(resume_path, map_location=device)
+        model.load_state_dict(ckpt_data['model'])
+        if 'opt' in ckpt_data and ckpt_data['opt'] is not None:
+            try:
+                opt.load_state_dict(ckpt_data['opt'])
+            except Exception as e:
+                print("Could not load optimizer state:", e)
+        start_epoch = ckpt_data.get('epoch', 0) + 1
+        print(f"Successfully resumed! Starting at epoch {start_epoch} of {args.epochs}")
+
+    best_path = os.path.join(args.out_dir, 'best_model.pth')
+    if os.path.exists(best_path):
+        try:
+            b_ckpt = torch.load(best_path, map_location='cpu')
+            best_val_ssim = b_ckpt.get('val_ssim', -1.0)
+            print(f"Loaded existing best val SSIM: {best_val_ssim:.4f}")
+        except Exception:
+            pass
+    elif os.path.exists(metrics_path):
+        try:
+            import pandas as pd
+            m_df = pd.read_csv(metrics_path)
+            if 'val_ssim' in m_df.columns and len(m_df) > 0:
+                best_val_ssim = float(m_df['val_ssim'].max())
+                print(f"Derived existing best val SSIM from metrics: {best_val_ssim:.4f}")
+        except Exception:
+            pass
+
     write_metrics_csv(metrics_path, None, header=True)
 
-    for epoch in range(args.epochs):
+    for epoch in range(start_epoch, args.epochs):
         t0 = time.time()
         model.train()
         total_loss = 0.0
@@ -223,8 +313,11 @@ def train(args):
                     # expand mask to channels
                     mask_c = mask_resized.repeat(1, out.shape[1], 1, 1)
                     masked_sum = (diff * mask_c).sum()
-                    denom = (mask_c.sum() * 1.0) + eps
-                    l1_masked = masked_sum / denom
+                    denom = (mask_c.sum() * 1.0)
+                    if denom > 0:
+                        l1_masked = masked_sum / (denom + eps)
+                    else:
+                        l1_masked = diff.mean()
                     if args.use_perceptual and hasattr(criterion, 'perc'):
                         perc = criterion.perc(out, tgt_resized)
                         loss = args.lam_l1 * l1_masked + args.lam_perc * perc
@@ -250,10 +343,15 @@ def train(args):
         scheduler.step(avg_loss)
 
         # checkpoint
+        ckpt_dict = {'model': model.state_dict(), 'opt': opt.state_dict(), 'epoch': epoch}
         ckpt_path = os.path.join(args.out_dir, f"model_epoch_{epoch}.pth")
-        torch.save({'model': model.state_dict(), 'opt': opt.state_dict(), 'epoch': epoch}, ckpt_path)
+        latest_path = os.path.join(args.out_dir, "latest_checkpoint.pth")
+        torch.save(ckpt_dict, ckpt_path)
+        torch.save(ckpt_dict, latest_path)
 
         # validation
+        avg_val_loss = 0.0
+        total_val_loss = 0.0
         avg_val_psnr = 0.0
         avg_val_ssim = 0.0
         val_count = 0
@@ -274,6 +372,18 @@ def train(args):
                             tgt_v = torch.nn.functional.interpolate(tgt_v, size=out_v.shape[2:], mode='bilinear', align_corners=False)
                             if mask_v is not None and mask_v.shape[2:] != out_v.shape[2:]:
                                 mask_v = torch.nn.functional.interpolate(mask_v, size=out_v.shape[2:], mode='nearest')
+
+                        v_diff = (out_v - tgt_v).abs()
+                        if mask_v is not None:
+                            v_mask_c = mask_v.repeat(1, out_v.shape[1], 1, 1)
+                            v_denom = v_mask_c.sum()
+                            if v_denom > 0:
+                                b_val_loss = (v_diff * v_mask_c).sum() / (v_denom + 1e-6)
+                            else:
+                                b_val_loss = v_diff.mean()
+                        else:
+                            b_val_loss = v_diff.mean()
+                        total_val_loss += b_val_loss.item() * out_v.size(0)
 
                         bs = out_v.shape[0]
                         for i in range(bs):
@@ -304,15 +414,21 @@ def train(args):
             print(f"Skipping validation this epoch (val_interval={args.val_interval})")
 
         if val_count > 0:
+            avg_val_loss = total_val_loss / val_count
             avg_val_psnr = avg_val_psnr / val_count
             avg_val_ssim = avg_val_ssim / val_count
         else:
+            avg_val_loss = 0.0
             avg_val_psnr = 0.0
             avg_val_ssim = 0.0
 
         epoch_time = time.time() - t0
-        print(f"Epoch {epoch} train_loss {avg_loss:.6f} val_psnr {avg_val_psnr:.4f} val_ssim {avg_val_ssim:.4f} epoch_time_s {epoch_time:.1f}")
-        write_metrics_csv(os.path.join(args.out_dir, 'metrics.csv'), [epoch, avg_loss, avg_val_psnr, avg_val_ssim, int(epoch_time)], header=False)
+        print(f"Epoch {epoch} train_loss {avg_loss:.6f} val_loss {avg_val_loss:.6f} val_psnr {avg_val_psnr:.4f} val_ssim {avg_val_ssim:.4f} epoch_time_s {epoch_time:.1f}")
+        metric_row = [epoch, avg_loss, avg_val_loss, avg_val_psnr, avg_val_ssim, int(epoch_time)]
+        write_metrics_csv(os.path.join(args.out_dir, 'metrics.csv'), metric_row, header=False)
+        rep_csv = os.path.join('reports', 'training', 'training_history.csv')
+        write_metrics_csv(rep_csv, metric_row, header=True)
+        plot_loss_curves(rep_csv, os.path.join('reports', 'training', 'loss_curves.png'))
 
         # previews (full-res forward)
         with torch.no_grad():
@@ -367,6 +483,10 @@ if __name__ == "__main__":
     # new damaged dir args:
     parser.add_argument('--damaged-dir', type=str, default=None, help='Folder with precomputed damaged TRAIN images')
     parser.add_argument('--damaged-dir-val', type=str, default=None, help='Folder with precomputed damaged VAL images (optional)')
+    parser.add_argument('--simulate', action='store_true', help='Simulate damage on-the-fly')
+    parser.add_argument('--patch-size', type=int, default=256, help='Patch size (0 = full image)')
+    parser.add_argument('--damage-aware-prob', type=float, default=0.7, help='Probability of centering crop on damaged area')
+    parser.add_argument('--resume', type=str, default=None, help='Path to checkpoint to resume from')
     args = parser.parse_args()
 
     # backwards compat: support metadata_csv names if present

@@ -63,9 +63,13 @@ def _add_mold_spots(img, rnd, severity=0.8):
         r = rnd.randint(min_r, max_r)
         cx = rnd.randint(r, w-r-1) if w - 2*r -1 > 0 else rnd.randint(0, w-1)
         cy = rnd.randint(r, h-r-1) if h - 2*r -1 > 0 else rnd.randint(0, h-1)
-        # safe distance map (avoid divide by zero)
-        y_grid, x_grid = np.ogrid[:h,:w]
-        # compute normalized squared distance; add epsilon to denominator
+        # safe local distance map on spot bounding box for speed
+        box_r = int(r * 3.5)
+        y0, y1 = max(0, cy - box_r), min(h, cy + box_r + 1)
+        x0, x1 = max(0, cx - box_r), min(w, cx + box_r + 1)
+        if y1 <= y0 or x1 <= x0:
+            continue
+        y_grid, x_grid = np.ogrid[y0:y1, x0:x1]
         denom = float(r*r) + 1e-6
         d = ((x_grid - cx)**2 + (y_grid - cy)**2) / denom
         # create spot (use nan_to_num to remove any accidental NaNs)
@@ -75,8 +79,8 @@ def _add_mold_spots(img, rnd, severity=0.8):
         # color and blend
         col = np.array([80 + rnd.randint(-15,15), 60 + rnd.randint(-10,10), 40 + rnd.randint(-10,10)], dtype=np.float32)
         alpha = np.clip(0.25 + severity*0.4, 0.1, 0.7) * spot[...,None]
-        out = out*(1-alpha) + alpha*col[None,None,:]
-        mask = np.maximum(mask, (spot>0.05).astype(np.uint8))
+        out[y0:y1, x0:x1] = out[y0:y1, x0:x1]*(1-alpha) + alpha*col[None,None,:]
+        mask[y0:y1, x0:x1] = np.maximum(mask[y0:y1, x0:x1], (spot>0.05).astype(np.uint8))
     out = np.clip(out, 0, 255)
     return out.astype(np.uint8), mask
 
@@ -162,7 +166,7 @@ def _add_local_blur(img, rnd, severity=0.7):
     mask[y:y+rh, x:x+rw] = 1
     return out, mask
 
-def simulate_damage_strong(img: np.ndarray, seed: int = 0, strength: str = 'strong', max_types: int = 4) -> Tuple[np.ndarray, np.ndarray]:
+def simulate_damage_strong(img: np.ndarray, seed: int = 0, strength: str = 'strong', max_types: int = 4, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
     """
     img: HxWx3 uint8 RGB
     seed: random seed
@@ -170,6 +174,8 @@ def simulate_damage_strong(img: np.ndarray, seed: int = 0, strength: str = 'stro
     max_types: maximum number of damage types to apply (1..5)
     returns damaged_img (uint8), damage_mask (0/1)
     """
+    if 'max_damage_types' in kwargs and kwargs['max_damage_types'] is not None:
+        max_types = kwargs['max_damage_types']
     rnd = _rand_state(seed)
     h,w,_ = img.shape
     severity = 1.0 if strength == 'strong' else 0.6
