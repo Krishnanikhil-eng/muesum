@@ -24,7 +24,7 @@
 - [x] Stage 2: Boundary Seam Improvement (`src/inference.py` hard/feathered blending + tests)
 - [x] Stage 3: Model Improvement Research & Fine-Tuning (`checkpoints/experimental_texture_model/`)
 - [x] Stage 4: Final Independent Evaluation (Holdout evaluation on both models)
-- [ ] Stage 5: Final Gradio Application (`app/demo.py` production studio)
+- [x] Stage 5: Final Gradio Application (`app/demo.py` production studio)
 - [ ] Stage 6: Automated Testing & QA (Full test suite execution)
 - [ ] Stage 7: Comprehensive Documentation (`README.md`, cards, architecture)
 - [ ] Stage 8: Centralized Configuration Management (`src/config.py`)
@@ -34,4 +34,4 @@
 ---
 
 ## Exact Next Action
-Upgrade Gradio Restoration Studio (`app/demo.py`) with Model Selection (Baseline vs Experimental), Blending selection (Hard vs Feathered), feather radius slider, diagnostics JSON export, and launch validation tests, then write `reports/phase_g_gradio_application_report.md`.
+Execute complete end-to-end automated QA test suite (`tests/`), verify all units and regressions (inference, feathering, composite loss, Gradio UI, smoke tests), generate coverage and latency diagnostics, write `reports/phase_g_final_test_report.md`, and commit Stage 6.
