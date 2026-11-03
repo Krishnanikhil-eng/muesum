@@ -37,6 +37,7 @@ if str(_ROOT_DIR) not in sys.path:
 from unet_model import ResNet34UNet
 from dataset import pad_to_multiple_of_32, unpad
 from utils import tensor_to_uint8, ensure_dir
+from feathering import blend_with_boundary_feathering
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -248,6 +249,8 @@ def restore_artwork_pipeline(
     model: Optional[torch.nn.Module] = None,
     device: Optional[torch.device] = None,
     blend_mode: str = "mask_guided",
+    feather_mode: str = "feathered",
+    feather_radius: int = 3,
     max_dimension: Optional[int] = 1024,
     return_diagnostics: bool = True
 ) -> Dict[str, Any]:
@@ -263,6 +266,8 @@ def restore_artwork_pipeline(
         model: Optional pre-loaded PyTorch model instance (overrides ModelManager).
         device: Target execution device (torch.device('cpu') or 'cuda').
         blend_mode: 'mask_guided' (recommended, bit-exact preservation) or 'raw_unet' (unguided).
+        feather_mode: 'feathered' (interior seam smoothing) or 'hard' (strict step cutoff).
+        feather_radius: Feathering radius in pixels strictly inside damage mask (default: 3).
         max_dimension: Aspect-preserving resize ceiling for neural inference (default: 1024).
                        If None, runs at native resolution.
         return_diagnostics: Whether to compute and include detailed metadata in the output dictionary.
@@ -341,24 +346,16 @@ def restore_artwork_pipeline(
 
     # ── 7. Final Composition & Bit-Exact Blending ─────────────────────────────
     if blend_mode == "mask_guided" and mask_binary is not None:
-        # Damage mask is binary (1.0 = damaged, 0.0 = clean)
-        # Undamaged region (mask == 0.0) is mathematically bit-exact to original input
-        dmg_bool = (mask_binary > 0.5)
-        undmg_bool = ~dmg_bool
-
-        restored_blended = orig_rgb.copy()
-        restored_blended[dmg_bool] = raw_unet_orig[dmg_bool]
-
-        # Calculate bit-exact preservation metrics on authentic surviving artwork
-        if np.any(undmg_bool):
-            diff = np.abs(restored_blended[undmg_bool].astype(np.int32) - orig_rgb[undmg_bool].astype(np.int32))
-            undamaged_max_diff = int(np.max(diff))
-            undamaged_mae = float(np.mean(diff))
-        else:
-            undamaged_max_diff = 0
-            undamaged_mae = 0.0
-
-        is_bit_exact = (undamaged_max_diff == 0)
+        restored_blended, blend_metrics = blend_with_boundary_feathering(
+            orig_rgb=orig_rgb,
+            restored_rgb=raw_unet_orig,
+            mask_binary=mask_binary,
+            feather_mode=feather_mode,
+            feather_radius=feather_radius
+        )
+        undamaged_max_diff = blend_metrics["undamaged_max_diff"]
+        undamaged_mae = blend_metrics["undamaged_mae"]
+        is_bit_exact = blend_metrics["is_bit_exact"]
         final_output = restored_blended
     else:
         # Raw UNet replaces 100% of pixels
@@ -385,6 +382,8 @@ def restore_artwork_pipeline(
     # ── 9. Package Diagnostics & Output Dictionary ────────────────────────────
     diagnostics = {
         "blend_mode": blend_mode,
+        "feather_mode": feather_mode if blend_mode == "mask_guided" else "none",
+        "feather_radius": feather_radius if (blend_mode == "mask_guided" and feather_mode == "feathered") else 0,
         "original_size": (orig_w, orig_h),
         "eval_size": (eval_w, eval_h),
         "mask_coverage_pct": round(mask_coverage_pct, 2),
@@ -436,6 +435,8 @@ if __name__ == "__main__":
     parser.add_argument("--mask_path", default=None, help="Path to damage mask (required for mask_guided mode)")
     parser.add_argument("--ckpt_path", default=None, help="Path to .pth checkpoint (optional)")
     parser.add_argument("--mode", default="mask_guided", choices=["mask_guided", "raw_unet"], help="Restoration mode")
+    parser.add_argument("--feather_mode", default="feathered", choices=["feathered", "hard"], help="Boundary feather mode")
+    parser.add_argument("--feather_radius", type=int, default=3, help="Interior feather radius in pixels (default: 3)")
     parser.add_argument("--max_dim", type=int, default=1024, help="Maximum evaluation dimension (default: 1024)")
     args = parser.parse_args()
 
@@ -444,6 +445,8 @@ if __name__ == "__main__":
         damage_mask=args.mask_path,
         ckpt_path=args.ckpt_path,
         blend_mode=args.mode,
+        feather_mode=args.feather_mode,
+        feather_radius=args.feather_radius,
         max_dimension=args.max_dim if args.max_dim > 0 else None,
         return_diagnostics=True
     )
