@@ -22,7 +22,7 @@
 - [x] Stage 0: Project Backup & Environment Inspection (`reports/phase_g_final_backup_and_environment.md`)
 - [x] Stage 1: Independent Dataset Acquisition (40 new Met artworks, `data/independent_holdout/`)
 - [x] Stage 2: Boundary Seam Improvement (`src/inference.py` hard/feathered blending + tests)
-- [ ] Stage 3: Model Improvement Research & Fine-Tuning (`checkpoints/experimental_texture_model/`)
+- [x] Stage 3: Model Improvement Research & Fine-Tuning (`checkpoints/experimental_texture_model/`)
 - [ ] Stage 4: Final Independent Evaluation (Holdout evaluation on both models)
 - [ ] Stage 5: Final Gradio Application (`app/demo.py` production studio)
 - [ ] Stage 6: Automated Testing & QA (Full test suite execution)
@@ -34,4 +34,4 @@
 ---
 
 ## Exact Next Action
-Implement composite loss with perceptual and edge components (`src/composite_loss.py`), configure experimental model fine-tuning initialized from Epoch 8 checkpoint (`scripts/train_experimental_model.py`), execute controlled training run to `checkpoints/experimental_texture_model/`, and write `reports/phase_g_model_improvement_report.md`.
+Execute Stage 4 independent evaluation on all 40 holdout artworks comparing baseline Epoch 8 vs experimental texture model (`scripts/evaluate_independent_holdout.py`), generate visual comparisons and CSV metrics, write `reports/phase_g_final_independent_evaluation.md`, and commit Stage 4.

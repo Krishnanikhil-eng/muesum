@@ -29,4 +29,9 @@
 | 14 | `0297a46` | Stage 2: Boundary seam feathering engine strictly inside damage mask | `src/feathering.py` | 15/15 PASSED | 2026-11-04 01:25 |
 | 15 | `c60e930` | Stage 2: Integrate boundary feathering into restore_artwork_pipeline | `src/inference.py` | 15/15 PASSED | 2026-11-04 01:25 |
 | 16 | `3394668` | Stage 2: Unit and regression test suite for boundary feathering | `tests/test_feathering.py` | 15/15 PASSED | 2026-11-04 01:25 |
-| 17 | `pending` | Stage 2: Boundary feathering report and state update | `reports/phase_g_boundary_feathering_report.md` | PASSED | 2026-11-04 01:26 |
+| 17 | `b89062b` | Stage 2: Boundary feathering report and state update | `reports/phase_g_boundary_feathering_report.md` | PASSED | 2026-11-04 01:26 |
+| 18 | `61f211f` | Stage 3: Multi-term composite restoration loss with VGG and edge features | `src/composite_loss.py` | 4/4 PASSED | 2026-11-04 01:36 |
+| 19 | `9efcab1` | Stage 3: Unit and gradient test suite for composite loss | `tests/test_composite_loss.py` | 4/4 PASSED | 2026-11-04 01:36 |
+| 20 | `1f1d17f` | Stage 3: Fine-tuning script with composite loss and checkpoint caching | `scripts/train_experimental_model.py` | PASSED | 2026-11-04 01:36 |
+| 21 | `68d2655` | Stage 3: Track experimental texture model training metrics | `training_metrics.csv` | PASSED | 2026-11-04 01:36 |
+| 22 | `pending` | Stage 3: Model improvement report and state update | `reports/phase_g_model_improvement_report.md` | PASSED | 2026-11-04 01:37 |
