@@ -1,0 +1,17 @@
+obj_id,category,title,coverage_pct,damaged_psnr,blended_psnr,delta_psnr,damaged_ssim,blended_ssim,delta_ssim,roi_damaged_psnr,roi_restored_psnr,roi_delta_psnr,undamaged_mae,is_bit_exact
+48953,Paintings,Landscape with Trees (Ni Zan),7.77,24.27,28.18,3.91,0.971,0.9731,0.0021,13.17,17.09,3.92,0.0,True
+437468,Paintings,The Portico of a Country Mansion,30.91,24.75,24.58,-0.17,0.9422,0.8632,-0.0789,20.06,19.87,-0.19,0.0,True
+336663,Drawings,Allegorical Figure of Painting (Guercino),17.08,26.77,25.62,-1.15,0.9641,0.9181,-0.0459,19.12,17.96,-1.16,0.0,True
+427650,Drawings,Sculpture Designs for Saint Peter,16.07,20.26,25.09,4.83,0.9054,0.9167,0.0113,12.61,18.11,5.5,0.0,True
+283234,Photographs,Study of a Sculpture (Albumen),15.21,32.84,28.74,-4.1,0.992,0.9809,-0.0111,24.71,20.58,-4.13,0.0,True
+157559,Textiles-Printed,Textile fragment (Calico Floral),31.34,20.92,18.43,-2.48,0.8853,0.7288,-0.1566,15.89,13.4,-2.49,0.0,True
+452913,Textiles-Printed,Textile fragment (Block Print),27.82,24.27,24.54,0.27,0.9199,0.8713,-0.0486,18.97,19.26,0.29,0.0,True
+451019,Textiles-Woven,Woven Tapestry Fragment,11.12,23.83,26.15,2.31,0.9376,0.9017,-0.0359,14.43,16.85,2.41,0.0,True
+329977,Textiles-Woven,Fragment of a Woman (Coptic),10.51,24.09,23.71,-0.38,0.9083,0.9046,-0.0038,14.33,13.95,-0.38,0.0,True
+466379,Sculptures,Sculpture of an Enthroned King,21.88,20.98,23.72,2.73,0.8889,0.8654,-0.0235,14.5,17.33,2.84,0.0,True
+471850,Sculptures,Sculpture of Moses with Tablets,8.3,21.19,25.88,4.69,0.9589,0.9631,0.0043,10.38,15.07,4.69,0.0,True
+252965,Bronzes,Bronze handle with dogs flanking palmette,8.68,21.64,28.41,6.77,0.9208,0.9648,0.044,11.3,19.29,7.99,0.0,True
+196488,Bronzes,Bronze statuette,9.79,25.47,30.37,4.9,0.9377,0.9586,0.0209,15.39,20.32,4.93,0.0,True
+451301,Manuscripts,Design for a Cup to Serve Wine (Codex),17.75,22.04,26.71,4.67,0.9513,0.9139,-0.0374,14.98,20.69,5.71,0.0,True
+354833,Books,The Works of Publius Virgilius Maro,28.71,16.9,18.65,1.74,0.912,0.8134,-0.0986,11.49,13.23,1.74,0.0,True
+680296,Books,Ein new getruckt model Büchli (Lace Book),25.63,20.34,24.87,4.53,0.9064,0.8575,-0.0489,14.56,19.35,4.79,0.0,True

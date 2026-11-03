@@ -9,11 +9,15 @@ data/
 *.jpg
 *.jpeg
 *.png
-!reports/**/*.png
-!reports/*.png
 !assets/**/*.png
 !assets/*.png
 !release/**/*.png
+
+# Exclude generated comparison PNGs from git
+reports/**/visual_comparisons/
+reports/**/plots/
+reports/damage_preprocessing_samples/
+reports/phase_f4_visual_comparisons/*.png
 
 # Model checkpoints and weights
 checkpoints/

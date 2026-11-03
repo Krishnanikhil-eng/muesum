@@ -1,0 +1,11 @@
+category,obj_id,title,classification,department,width,height,megapixels,mask_coverage_pct,inference_time_s,ram_delta_gb,damaged_psnr,damaged_ssim,restored_psnr,restored_ssim,delta_psnr,delta_ssim
+Anchor (Wall Painting),247010,Wall painting from Room H of the Villa o,Miscellaneous-Paintings,Greek and Roman Art,3883,3614,14.03,27.0,43.19,0.0,20.99,0.7902,19.2,0.3952,-1.79,-0.395
+Painting (Asian Art),48953,Landscape with Trees in the Manner of Ni,Paintings,Asian Art,2349,4000,9.4,7.77,26.55,1.15,24.27,0.971,22.84,0.7787,-1.43,-0.1922
+Codex (Islamic Art),451301,"""Design for a Cup to Serve Wine at Drink",Codices,Islamic Art,2806,4000,11.22,17.75,40.4,1.62,22.04,0.9513,22.8,0.6395,0.77,-0.3118
+Textile (Woven Tapestry),451019,Woven Tapestry Fragment,Textiles-Woven,Islamic Art,2715,4000,10.86,11.12,50.55,0.5,23.83,0.9376,17.13,0.1561,-6.71,-0.7816
+Drawing (Allegorical),336663,Allegorical Figure of Painting,Drawings,Drawings and Prints,1632,1903,3.11,17.08,7.41,1.83,26.77,0.9641,16.07,0.5401,-10.7,-0.4239
+Sculpture (Stone),466379,Sculpture of an Enthroned King,Sculpture-Stone,Medieval Art,2882,3842,11.07,21.88,40.94,0.0,20.98,0.8889,19.96,0.7573,-1.02,-0.1316
+Print (Ancient Philosophers),403800,"Portraits of the Ancient Philosophers, f",Prints,Drawings and Prints,3085,3739,11.53,28.29,42.56,0.61,18.98,0.8932,19.5,0.5942,0.52,-0.299
+Book (Works of Virgil),354833,The Works of Publius Virgilius Maro: Tra,Books,Drawings and Prints,4000,2940,11.76,28.71,39.94,1.21,16.9,0.912,15.98,0.36,-0.92,-0.5521
+Photograph (Sculpture Study),283234,[Study of a Sculpture],Photographs,Photographs,2911,3880,11.29,15.21,38.18,0.0,32.84,0.992,21.7,0.9036,-11.13,-0.0883
+Costume (Four-Cornered Hat),314620,Four-Cornered Hat,Textiles-Costumes,The Michael C. Rockefeller Wing,4000,3629,14.52,16.42,45.0,0.0,23.99,0.9261,20.05,0.6923,-3.94,-0.2338

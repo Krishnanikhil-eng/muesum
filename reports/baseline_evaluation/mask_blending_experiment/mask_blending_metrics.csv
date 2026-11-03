@@ -1,0 +1,11 @@
+category,obj_id,title,width,height,mask_coverage_pct,latency_s,undamaged_max_diff,undamaged_mae,damaged_psnr_whole,damaged_ssim_whole,raw_psnr_whole,raw_ssim_whole,raw_delta_psnr,raw_delta_ssim,blended_psnr_whole,blended_ssim_whole,blended_delta_psnr,blended_delta_ssim,roi_damaged_psnr,roi_restored_psnr,roi_delta_psnr
+Anchor (Wall Painting),247010,Wall painting from Room H of the Vi,3883,3614,27.0,35.36,0,0.0,20.99,0.7902,19.2,0.3952,-1.79,-0.395,23.72,0.745,2.73,-0.0452,15.5,18.42,2.92
+Painting (Asian Art),48953,Landscape with Trees in the Manner ,2349,4000,7.77,20.57,0,0.0,24.27,0.971,22.84,0.7787,-1.43,-0.1922,29.19,0.9743,4.93,0.0034,13.17,18.11,4.93
+Codex (Islamic Art),451301,"""Design for a Cup to Serve Wine at ",2806,4000,17.75,24.07,0,0.0,22.04,0.9513,22.8,0.6395,0.77,-0.3118,25.75,0.9175,3.71,-0.0338,14.98,19.39,4.41
+Textile (Woven Tapestry),451019,Woven Tapestry Fragment,2715,4000,11.12,28.68,0,0.0,23.83,0.9376,17.13,0.1561,-6.71,-0.7816,25.8,0.904,1.96,-0.0337,14.43,16.48,2.05
+Drawing (Allegorical),336663,Allegorical Figure of Painting,1632,1903,17.08,6.8,0,0.0,26.77,0.9641,16.07,0.5401,-10.7,-0.4239,26.06,0.9184,-0.72,-0.0456,19.12,18.4,-0.72
+Sculpture (Stone),466379,Sculpture of an Enthroned King,2882,3842,21.88,27.59,0,0.0,20.98,0.8889,19.96,0.7573,-1.02,-0.1316,24.83,0.8804,3.85,-0.0085,14.5,18.52,4.02
+Print (Ancient Philosophers),403800,Portraits of the Ancient Philosophe,3085,3739,28.29,26.31,0,0.0,18.98,0.8932,19.5,0.5942,0.52,-0.299,23.15,0.8772,4.17,-0.016,13.51,17.7,4.19
+Book (Works of Virgil),354833,The Works of Publius Virgilius Maro,4000,2940,28.71,27.49,0,0.0,16.9,0.912,15.98,0.36,-0.92,-0.5521,18.49,0.8197,1.59,-0.0923,11.49,13.08,1.59
+Photograph (Sculpture Study),283234,[Study of a Sculpture],2911,3880,15.21,26.4,0,0.0,32.84,0.992,21.7,0.9036,-11.13,-0.0883,29.01,0.9819,-3.83,-0.0101,24.71,20.85,-3.86
+Costume (Four-Cornered Hat),314620,Four-Cornered Hat,4000,3629,16.42,61.51,0,0.0,23.99,0.9261,20.05,0.6923,-3.94,-0.2338,26.58,0.9212,2.59,-0.0049,16.31,19.04,2.73
