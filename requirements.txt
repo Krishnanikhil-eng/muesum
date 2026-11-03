@@ -1,15 +1,29 @@
+# Core deep learning
 numpy
 pillow
-opencv-python
-scipy
 torch>=1.13.0
 torchvision
-tqdm
+
+# Image processing
+opencv-python
 scikit-image
+scipy
 matplotlib
+
+# Data handling
+pandas
+tqdm
+pyyaml
+
+# API downloader
+requests
+
+# Web demo
+gradio>=4.0.0
+
+# Model utilities (optional but used in existing code)
 safetensors
 diffusers
 transformers
 accelerate
 omegaconf
-pyyaml
