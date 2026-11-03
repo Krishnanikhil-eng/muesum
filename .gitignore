@@ -1,0 +1,48 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Datasets (large image archives)
+data/
+*.jpg
+*.jpeg
+*.png
+!reports/**/*.png
+!reports/*.png
+!assets/**/*.png
+!assets/*.png
+!release/**/*.png
+
+# Model checkpoints and weights
+checkpoints/
+outputs/
+*.pth
+*.pt
+*.ckpt
+*.bin
+*.safetensors
+
+# Temporary, backup, and log files
+backup/
+*.tmp
+*.temp
+*.bak
+*.swp
+*.log
+!reports/*.log
+!reports/*.md
+
+# Environments
+env/
+venv/
+ENV/
+.env
+
+# OS-generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
