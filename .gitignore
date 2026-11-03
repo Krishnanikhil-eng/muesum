@@ -12,6 +12,9 @@ data/
 !assets/**/*.png
 !assets/*.png
 !release/**/*.png
+!release/*.png
+!release/**/*.jpg
+!release/*.jpg
 
 # Exclude generated comparison PNGs from git
 reports/**/visual_comparisons/
