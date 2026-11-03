@@ -25,4 +25,8 @@
 | 10 | `f53d9ad` | Stage 0: Record initial commit log audit | `reports/GIT_COMMIT_LOG.md` | PASSED | 2026-11-04 01:14 |
 | 11 | `7873d63` | Stage 1: Acquire 40 independent holdout artworks from Met API | `scripts/acquire_independent_holdout.py`, `metadata.csv` | PASSED | 2026-11-04 01:22 |
 | 12 | `0919b78` | Stage 1: Independent holdout dataset acquisition report | `reports/phase_g_independent_dataset_report.md` | PASSED | 2026-11-04 01:22 |
-| 13 | `pending` | Stage 1: Update execution tracking log with Stage 1 completion | `reports/AUTONOMOUS_EXECUTION_STATE.md`, `GIT_COMMIT_LOG.md` | PASSED | 2026-11-04 01:23 |
+| 13 | `7091e1b` | Stage 1: Update execution tracking log with Stage 1 completion | `reports/AUTONOMOUS_EXECUTION_STATE.md`, `GIT_COMMIT_LOG.md` | PASSED | 2026-11-04 01:23 |
+| 14 | `0297a46` | Stage 2: Boundary seam feathering engine strictly inside damage mask | `src/feathering.py` | 15/15 PASSED | 2026-11-04 01:25 |
+| 15 | `c60e930` | Stage 2: Integrate boundary feathering into restore_artwork_pipeline | `src/inference.py` | 15/15 PASSED | 2026-11-04 01:25 |
+| 16 | `3394668` | Stage 2: Unit and regression test suite for boundary feathering | `tests/test_feathering.py` | 15/15 PASSED | 2026-11-04 01:25 |
+| 17 | `pending` | Stage 2: Boundary feathering report and state update | `reports/phase_g_boundary_feathering_report.md` | PASSED | 2026-11-04 01:26 |

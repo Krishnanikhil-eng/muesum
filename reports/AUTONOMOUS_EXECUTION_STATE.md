@@ -21,7 +21,7 @@
 - [x] Pre-Mission Authorization & Setup
 - [x] Stage 0: Project Backup & Environment Inspection (`reports/phase_g_final_backup_and_environment.md`)
 - [x] Stage 1: Independent Dataset Acquisition (40 new Met artworks, `data/independent_holdout/`)
-- [ ] Stage 2: Boundary Seam Improvement (`src/inference.py` hard/feathered blending + tests)
+- [x] Stage 2: Boundary Seam Improvement (`src/inference.py` hard/feathered blending + tests)
 - [ ] Stage 3: Model Improvement Research & Fine-Tuning (`checkpoints/experimental_texture_model/`)
 - [ ] Stage 4: Final Independent Evaluation (Holdout evaluation on both models)
 - [ ] Stage 5: Final Gradio Application (`app/demo.py` production studio)
@@ -34,4 +34,4 @@
 ---
 
 ## Exact Next Action
-Implement boundary feathering (`src/feathering.py` and integration in `src/inference.py`), add unit tests in `tests/test_feathering.py`, run tests, write `reports/phase_g_boundary_feathering_report.md`, and commit Stage 2.
+Implement composite loss with perceptual and edge components (`src/composite_loss.py`), configure experimental model fine-tuning initialized from Epoch 8 checkpoint (`scripts/train_experimental_model.py`), execute controlled training run to `checkpoints/experimental_texture_model/`, and write `reports/phase_g_model_improvement_report.md`.
