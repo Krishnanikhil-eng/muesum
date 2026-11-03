@@ -28,7 +28,8 @@ outputs/
 *.bin
 *.safetensors
 
-# Temporary, backup, and log files
+# Binary PDF documents
+research/*.pdf
 backup/
 *.tmp
 *.temp
