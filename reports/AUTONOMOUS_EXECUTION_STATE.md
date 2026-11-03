@@ -23,7 +23,7 @@
 - [x] Stage 1: Independent Dataset Acquisition (40 new Met artworks, `data/independent_holdout/`)
 - [x] Stage 2: Boundary Seam Improvement (`src/inference.py` hard/feathered blending + tests)
 - [x] Stage 3: Model Improvement Research & Fine-Tuning (`checkpoints/experimental_texture_model/`)
-- [ ] Stage 4: Final Independent Evaluation (Holdout evaluation on both models)
+- [x] Stage 4: Final Independent Evaluation (Holdout evaluation on both models)
 - [ ] Stage 5: Final Gradio Application (`app/demo.py` production studio)
 - [ ] Stage 6: Automated Testing & QA (Full test suite execution)
 - [ ] Stage 7: Comprehensive Documentation (`README.md`, cards, architecture)
@@ -34,4 +34,4 @@
 ---
 
 ## Exact Next Action
-Execute Stage 4 independent evaluation on all 40 holdout artworks comparing baseline Epoch 8 vs experimental texture model (`scripts/evaluate_independent_holdout.py`), generate visual comparisons and CSV metrics, write `reports/phase_g_final_independent_evaluation.md`, and commit Stage 4.
+Upgrade Gradio Restoration Studio (`app/demo.py`) with Model Selection (Baseline vs Experimental), Blending selection (Hard vs Feathered), feather radius slider, diagnostics JSON export, and launch validation tests, then write `reports/phase_g_gradio_application_report.md`.
