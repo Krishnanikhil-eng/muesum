@@ -1,0 +1,91 @@
+{
+  "release_version": "1.0.0",
+  "release_name": "MUESUM — AI-Powered Historical Artwork Restoration System",
+  "release_date": "2026-11-04",
+  "project_status": "Production Release / Phase G Complete",
+  "license": "MIT",
+  "hardware_profile": {
+    "target_platform": "Windows 10/11 & Linux (x86_64)",
+    "execution_mode": "CPU-Optimized (CUDA GPU auto-detected)",
+    "minimum_ram_gb": 8,
+    "recommended_ram_gb": 16,
+    "tested_device": "Intel Core i5-1235U, 16 GB RAM, Windows 11"
+  },
+  "software_dependencies": {
+    "python": ">=3.8,<3.12",
+    "torch": ">=2.0.0",
+    "torchvision": ">=0.15.0",
+    "gradio": ">=4.0.0",
+    "opencv-python": ">=4.8.0",
+    "scikit-image": ">=0.21.0",
+    "scipy": ">=1.10.0",
+    "pillow": ">=9.5.0",
+    "numpy": ">=1.24.0"
+  },
+  "models": {
+    "experimental_texture_model": {
+      "name": "Experimental Texture Model (Composite Loss — Recommended)",
+      "file_path": "checkpoints/experimental_texture_model/best_model.pth",
+      "architecture": "ResNet34UNet (PyTorch)",
+      "parameters": 28235459,
+      "loss_formulation": "L1 Masked (1.0) + Sobel Edge (0.15) + Total Variation (0.01) + VGG Perceptual (0.05)",
+      "validation_ssim": 0.554378,
+      "holdout_mean_psnr_db": 25.88,
+      "holdout_mean_ssim": 0.9022,
+      "sha256": "14481951B79F4DF6FEFC0A115677DB4E6D2B9564A2A9294A96162912AE5A9A9F"
+    },
+    "baseline_model": {
+      "name": "Baseline ResNet34-UNet (Epoch 8 Benchmark)",
+      "file_path": "checkpoints/baseline_run/best_model.pth",
+      "architecture": "ResNet34UNet (PyTorch)",
+      "parameters": 28235459,
+      "loss_formulation": "L1 Reconstruction Loss",
+      "validation_ssim": 0.490855,
+      "holdout_mean_psnr_db": 25.71,
+      "holdout_mean_ssim": 0.9024,
+      "sha256": "0FECFFBF0D43BC03760A34E041A69C13FCDE00E3A7C914D3A3D824F4873AF8B7"
+    }
+  },
+  "datasets": {
+    "met_curatorial_corpus": {
+      "total_images": 2000,
+      "train_split": 1600,
+      "validation_split": 200,
+      "test_split": 200,
+      "source": "The Metropolitan Museum of Art Open Access Collection API v1.1",
+      "synthetic_damage_types": ["craquelure", "scratches", "abrasions", "foxing", "water_stains", "paint_losses"]
+    },
+    "independent_holdout_benchmark": {
+      "total_images": 40,
+      "categories": 10,
+      "images_per_category": 4,
+      "id_overlap_with_training": 0,
+      "metadata_file": "data/independent_holdout/metadata.csv",
+      "metadata_sha256": "5E27C6FB94E959F9D40A0DFE776EDEC99732F79BB22BA33626AF10A741113B53"
+    }
+  },
+  "packaged_samples": {
+    "sample_artwork": {
+      "file_path": "release/sample_artwork.jpg",
+      "object_id": 435581,
+      "title": "Portrait of a Young Man",
+      "artist": "Antonello da Messina",
+      "date": "ca. 1470",
+      "classification": "Paintings",
+      "dimensions": "777x1024",
+      "sha256": "548DDFAD71183E76D2655BABA70300125EAD92C181107C69CF97DA95D72D1CFD"
+    },
+    "sample_mask": {
+      "file_path": "release/sample_mask.png",
+      "dimensions": "777x1024",
+      "polarity": "255: damaged, 0: surviving authentic artwork",
+      "sha256": "1D7881EF6B6C015B45E669955D00AA99BA44EE5ADB8A164E7AE4AC5CC6439066"
+    }
+  },
+  "conservation_guarantees": {
+    "undamaged_pixel_preservation": "100% bit-exact (MAE = 0.000000, MaxDiff = 0)",
+    "boundary_feathering": "Interior distance-transform cosine transition",
+    "boundary_seam_gradient_reduction": ">70%",
+    "automated_test_pass_rate": "29 / 29 (100.0%)"
+  }
+}
