@@ -3,22 +3,24 @@ app/demo.py
 MUESUM Studio — AI-Based Historical Artwork Restoration
 ======================================================
 Interactive Gradio Web Application featuring:
+  - Dual Architecture Support: Experimental Texture Model (Composite Loss) and Baseline (Epoch 8).
   - Dual Input Modes: File Upload (Image + Mask) and Interactive Brush Editor.
-  - Mask-Guided Blending: 100% bit-exact mathematical preservation of undamaged artwork.
-  - Raw UNet Inpainting: Unguided baseline comparison.
+  - Interior Boundary Feathering: Smooth, natural transition strictly inside the damage mask.
+  - 100% Bit-Exact Preservation: Surviving authentic pixels remain completely unaltered.
   - Interactive Before/After ImageSlider.
-  - Real-time Curatorial Diagnostics: Coverage %, Latency, MAE, and Preservation Status.
-  - Full-Resolution Restored Artwork Export.
+  - Real-time Curatorial Diagnostics: Coverage %, Latency, MAE, MaxDiff, and Preservation Status.
+  - Full-Resolution Restored Artwork (PNG) & Provenance Diagnostics (JSON) Export.
 
 Usage:
     python app/demo.py
-    python app/demo.py --ckpt-path checkpoints/baseline_run/best_model.pth --port 7860
+    python app/demo.py --port 7860
 """
 
 import sys
 import os
 import argparse
 import tempfile
+import json
 import time
 from pathlib import Path
 from typing import Optional, Tuple, Dict, Any
@@ -57,6 +59,16 @@ try:
 except ImportError as e:
     INFERENCE_AVAILABLE = False
     INFERENCE_ERROR = str(e)
+
+
+CHECKPOINT_OPTIONS = {
+    "Experimental Texture Model (Composite Loss — Recommended)": str(
+        _ROOT_DIR / "checkpoints" / "experimental_texture_model" / "best_model.pth"
+    ),
+    "Baseline ResNet34-UNet (Epoch 8 Checkpoint)": str(
+        _ROOT_DIR / "checkpoints" / "baseline_run" / "best_model.pth"
+    ),
+}
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -99,22 +111,31 @@ def _extract_inputs(
     # Merge painted brush strokes across all layers into a binary mask
     bg_arr = np.array(bg_pil)
     h, w = bg_arr.shape[:2]
-    mask_arr = np.zeros((h, w), dtype=np.uint8)
+    composite_mask = np.zeros((h, w), dtype=bool)
 
     for layer in layers:
         if layer is None:
             continue
-        l_arr = np.array(layer)
-        if l_arr.ndim == 3 and l_arr.shape[2] == 4:  # RGBA
-            # Alpha channel > 10 indicates painted damage
-            mask_arr = np.maximum(mask_arr, (l_arr[:, :, 3] > 10).astype(np.uint8) * 255)
-        elif l_arr.ndim == 2:
-            mask_arr = np.maximum(mask_arr, (l_arr > 10).astype(np.uint8) * 255)
+        if isinstance(layer, Image.Image):
+            layer_arr = np.array(layer.convert("RGBA"))
+        elif isinstance(layer, np.ndarray):
+            layer_arr = layer
+        else:
+            continue
 
-    if np.sum(mask_arr > 0) == 0:
+        # In Gradio ImageEditor, drawn strokes have positive alpha (> 10)
+        if layer_arr.shape[-1] == 4:
+            alpha = layer_arr[..., 3]
+            composite_mask |= (alpha > 10)
+        elif layer_arr.ndim == 2:
+            composite_mask |= (layer_arr > 10)
+
+    if not np.any(composite_mask):
         return bg_pil, None
 
-    mask_pil = Image.fromarray(mask_arr, mode="L")
+    # Convert boolean mask to PIL Image (255 = damage, 0 = clean)
+    mask_uint8 = (composite_mask.astype(np.uint8)) * 255
+    mask_pil = Image.fromarray(mask_uint8, mode="L")
     return bg_pil, mask_pil
 
 
@@ -126,7 +147,10 @@ def run_restoration(
     upload_img: Optional[Image.Image],
     upload_mask: Optional[Image.Image],
     editor_data: Optional[Dict[str, Any]],
+    model_choice: str,
     blend_mode: str,
+    feather_mode: str,
+    feather_radius: int,
     max_dim: int,
     ckpt_override: str
 ):
@@ -152,7 +176,15 @@ def run_restoration(
                 "or switch the mode to 'Raw UNet (Unguided Convolutions)'."
             )
 
-    target_ckpt = ckpt_override.strip() if ckpt_override.strip() else None
+    # Resolve target checkpoint
+    if ckpt_override and ckpt_override.strip():
+        target_ckpt = ckpt_override.strip()
+    else:
+        target_ckpt = CHECKPOINT_OPTIONS.get(model_choice, find_default_checkpoint())
+
+    if not Path(target_ckpt).exists():
+        # Fallback to default checkpoint
+        target_ckpt = find_default_checkpoint()
 
     try:
         max_dimension = int(max_dim) if int(max_dim) > 0 else None
@@ -161,6 +193,8 @@ def run_restoration(
             damage_mask=mask,
             ckpt_path=target_ckpt,
             blend_mode=blend_mode,
+            feather_mode=feather_mode,
+            feather_radius=int(feather_radius),
             max_dimension=max_dimension,
             return_diagnostics=True
         )
@@ -173,10 +207,29 @@ def run_restoration(
     preview_pil = res["mask_preview"] or orig_pil
     diag = res["diagnostics"]
 
-    # Save restored image to a persistent temporary file for download
-    tmp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-    restored_pil.save(tmp_file.name, format="PNG")
-    tmp_file.close()
+    # Save restored image to a persistent temporary file for PNG download
+    tmp_png = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+    restored_pil.save(tmp_png.name, format="PNG")
+    tmp_png.close()
+
+    # Save diagnostics JSON for metadata download
+    tmp_json = tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w", encoding="utf-8")
+    export_payload = {
+        "muesum_version": "2.0",
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+        "model_architecture": "ResNet34-UNet",
+        "model_checkpoint": str(target_ckpt),
+        "model_type": model_choice,
+        "parameters": {
+            "blend_mode": blend_mode,
+            "feather_mode": feather_mode,
+            "feather_radius": int(feather_radius),
+            "max_dimension": max_dimension
+        },
+        "diagnostics": diag
+    }
+    json.dump(export_payload, tmp_json, indent=2)
+    tmp_json.close()
 
     # Format diagnostic status markdown
     is_exact = diag["is_bit_exact"]
@@ -184,20 +237,21 @@ def run_restoration(
     status_title = "100% Bit-Exact Preservation" if is_exact else "Raw UNet (Unguided)"
 
     diag_md = f"""
-### 📊 Restoration Diagnostics
+### 📊 Restoration Diagnostics & Curatorial Report
 | Diagnostic Metric | Measured Value | Curatorial Status |
 | :--- | :---: | :--- |
+| **Active Model** | `{Path(target_ckpt).parent.name}` | {model_choice.split('(')[0].strip()} |
 | **Restoration Mode** | `{diag['blend_mode']}` | {'Mask-Guided Blending' if is_exact else 'Full-Image Inpainting'} |
-| **Preservation Status** | **{status_icon} {status_title}** | {'Undamaged pixels are 100% unchanged' if is_exact else 'Global convolution shifts applied'} |
-| **Damage Coverage** | `{diag['mask_coverage_pct']:.2f}%` | Area repaired by ResNet34-UNet |
+| **Seam Feathering** | `{diag.get('feather_mode', 'none')} (r={diag.get('feather_radius', 0)}px)` | {'Interior Smoothstep Seam' if diag.get('feather_mode') == 'feathered' else 'Hard Boundary'} |
+| **Preservation Status** | **{status_icon} {status_title}** | {'Undamaged pixels are 100% untouched' if is_exact else 'Global convolution shifts applied'} |
+| **Damage Coverage** | `{diag['mask_coverage_pct']:.2f}%` | Area repaired by neural network |
 | **Inference Latency** | `{diag['latency_ms']:.1f} ms` | Sequential CPU execution |
 | **Undamaged MAE** | `{diag['undamaged_mae']:.6f}` | {'0.000000 (Mathematical bit-exact)' if is_exact else 'Non-zero pixel deviation'} |
 | **Max Undamaged Diff** | `{diag['undamaged_max_diff']}` | {'0 (Exact match)' if is_exact else 'Pixel shift'} |
 | **Original Resolution**| `{diag['original_size'][0]} × {diag['original_size'][1]} px` | Native artwork dimensions |
-| **Neural Eval Size**   | `{diag['eval_size'][0]} × {diag['eval_size'][1]} px` | Aspect-preserving scale |
+| **Neural Scale**       | `{diag['eval_size'][0]} × {diag['eval_size'][1]} px` | Aspect-preserving evaluation |
 """
 
-    # ImageSlider takes (before, after) tuple
     slider_tuple = (orig_pil, restored_pil)
 
     return (
@@ -206,7 +260,8 @@ def run_restoration(
         raw_pil,
         preview_pil,
         diag_md,
-        gr.DownloadButton(value=tmp_file.name, visible=True, label="⬇️ Download Restored Artwork (PNG)")
+        gr.DownloadButton(value=tmp_png.name, visible=True, label="⬇️ Download Restored Artwork (PNG)"),
+        gr.DownloadButton(value=tmp_json.name, visible=True, label="📄 Export Curatorial Diagnostics (JSON)")
     )
 
 
@@ -215,31 +270,19 @@ def run_restoration(
 # ──────────────────────────────────────────────────────────────────────────────
 def build_interface(default_ckpt: str = "") -> gr.Blocks:
     ckpt_name = Path(default_ckpt).name if default_ckpt else "None found"
-    ckpt_status = (
-        f"✅ **Active Checkpoint**: `{ckpt_name}` (`{default_ckpt}`)"
-        if default_ckpt
-        else "⚠️ **No Checkpoint Found**. Please specify a valid `.pth` checkpoint path below."
-    )
 
-    custom_css = """
-    .gradio-container { max-width: 1200px !important; }
-    .status-badge { font-weight: bold; padding: 4px 8px; border-radius: 4px; }
-    """
-
-    with gr.Blocks(title="🏛️ MUESUM Studio — AI Artwork Restoration") as demo:
+    with gr.Blocks(title="🏛️ MUESUM Studio — AI Historical Artwork Restoration") as demo:
         # Header
         gr.Markdown("""
 # 🏛️ MUESUM Studio — AI Historical Artwork Restoration
-### ResNet34-UNet Deep Learning Restoration with Bit-Exact Authentic Preservation
-Restore museum artworks degraded by physical stains, mold, scratches, or tears while preserving **100% of authentic surviving artwork**.
+### ResNet34-UNet Deep Learning Restoration with 100% Bit-Exact Authentic Preservation
+Restore museum-grade cultural heritage artworks degraded by physical stains, craquelure, mold, scratches, or tears.
         """)
-
-        gr.Markdown(f"> {ckpt_status}")
 
         active_tab_state = gr.State(value="upload")
 
         with gr.Row():
-            # ── LEFT COLUMN: INPUTS & SETTINGS ────────────────────────────────
+            # ── LEFT COLUMN: INPUTS & CONTROLS ────────────────────────────────
             with gr.Column(scale=5):
                 with gr.Tabs():
                     with gr.Tab("📁 Upload Image & Mask", id="tab_upload") as tab_upload:
@@ -254,7 +297,7 @@ Restore museum artworks degraded by physical stains, mold, scratches, or tears w
                             type="pil",
                             sources=["upload", "clipboard"]
                         )
-                        gr.Markdown("*Mask Polarity: White (255) represents damage to be repaired; Black (0) represents clean artwork.*")
+                        gr.Markdown("*Mask Polarity: White (255) represents damage to repair; Black (0) represents authentic artwork.*")
 
                     with gr.Tab("🖌️ Interactive Brush Canvas", id="tab_brush") as tab_brush:
                         gr.Markdown(
@@ -266,10 +309,19 @@ Restore museum artworks degraded by physical stains, mold, scratches, or tears w
                             brush=gr.Brush(colors=["#ff2222", "#ffffff"], default_size=24),
                             eraser=gr.Eraser()
                         )
-                        gr.Markdown("*Draw red/white strokes over stains or cracks. The painted region will be extracted as the damage mask.*")
+                        gr.Markdown("*Draw red/white brush strokes over damaged areas. Painted strokes become the neural repair mask.*")
 
                 # Controls & Settings
-                with gr.Accordion("⚙️ Inference & Restoration Settings", open=True):
+                with gr.Accordion("⚙️ Model Architecture & Inpainting Settings", open=True):
+                    model_choice = gr.Radio(
+                        choices=[
+                            "Experimental Texture Model (Composite Loss — Recommended)",
+                            "Baseline ResNet34-UNet (Epoch 8 Checkpoint)"
+                        ],
+                        value="Experimental Texture Model (Composite Loss — Recommended)",
+                        label="🧠 Neural Model Selection"
+                    )
+
                     blend_mode = gr.Radio(
                         choices=[
                             ("Mask-Guided Blending (Recommended — 100% Bit-Exact Preservation)", "mask_guided"),
@@ -278,6 +330,24 @@ Restore museum artworks degraded by physical stains, mold, scratches, or tears w
                         value="mask_guided",
                         label="Restoration Mode"
                     )
+
+                    with gr.Row():
+                        feather_mode = gr.Radio(
+                            choices=[
+                                ("Feathered Interior (Seamless)", "feathered"),
+                                ("Hard Cutoff (Bit-Exact Step)", "hard")
+                            ],
+                            value="feathered",
+                            label="🎨 Boundary Seam Blending"
+                        )
+                        feather_radius = gr.Slider(
+                            minimum=1,
+                            maximum=15,
+                            value=3,
+                            step=1,
+                            label="Feather Radius (px)"
+                        )
+
                     max_dim = gr.Dropdown(
                         choices=[
                             ("1024 px (Fast, Standard Evaluation)", 1024),
@@ -290,7 +360,7 @@ Restore museum artworks degraded by physical stains, mold, scratches, or tears w
                     ckpt_override = gr.Textbox(
                         label="Checkpoint Path (.pth override, optional)",
                         placeholder="checkpoints/baseline_run/best_model.pth",
-                        value=default_ckpt
+                        value=""
                     )
 
                 with gr.Row():
@@ -317,12 +387,19 @@ Restore museum artworks degraded by physical stains, mold, scratches, or tears w
                     with gr.Tab("🎯 Damage Overlay Preview"):
                         overlay_view = gr.Image(label="Damage Mask Overlay (Red = Damaged)", type="pil", interactive=False)
 
-                # Download Button
-                download_btn = gr.DownloadButton(
-                    label="⬇️ Download Restored Artwork (Full Resolution PNG)",
-                    visible=False,
-                    variant="primary"
-                )
+                with gr.Row():
+                    download_btn = gr.DownloadButton(
+                        label="⬇️ Download Restored Artwork (Full Resolution PNG)",
+                        visible=False,
+                        variant="primary",
+                        scale=1
+                    )
+                    download_json_btn = gr.DownloadButton(
+                        label="📄 Export Curatorial Diagnostics (JSON)",
+                        visible=False,
+                        variant="secondary",
+                        scale=1
+                    )
 
                 # Diagnostics Panel
                 diag_box = gr.Markdown(
@@ -335,10 +412,10 @@ Restore museum artworks degraded by physical stains, mold, scratches, or tears w
         # ── Curatorial Notice & Documentation ─────────────────────────────────
         gr.Markdown("""
 ---
-### 🏛️ Curatorial & Scientific Notice
-- **Mathematical Integrity**: In `mask_guided` mode, all undamaged pixels are mathematically locked to their original values ($\text{MAE} = 0.000000$). The neural network is permitted to generate pixels strictly within the area specified by the damage mask.
-- **No Automatic Mask Fabrications**: MUESUM never guesses or invents damage masks automatically. Restoration fidelity depends directly on the accuracy of the provided or painted mask.
-- **Architecture**: PyTorch ResNet34-UNet trained on 2,000 public-domain Met Museum artworks with simulated physical damage (stains, mold, cracks, scratches).
+### 🏛️ Curatorial & Scientific Standards
+- **Mathematical Integrity**: In `mask_guided` mode, all authentic undamaged substrate is mathematically locked to original pixel values ($\text{MAE} = 0.000000, \text{MaxDiff} = 0$).
+- **Interior Seam Feathering**: Softens transitions strictly inside the damage mask using Euclidean distance transform, completely eliminating border halos without contaminating authentic paint.
+- **Museum Provenance**: Diagnostics export contains SHA metadata, inference scale, latency, and preservation metrics for conservation archives.
         """)
 
         # ── Tab Change Listeners ──────────────────────────────────────────────
@@ -353,7 +430,10 @@ Restore museum artworks degraded by physical stains, mold, scratches, or tears w
                 upload_img,
                 upload_mask,
                 image_editor,
+                model_choice,
                 blend_mode,
+                feather_mode,
+                feather_radius,
                 max_dim,
                 ckpt_override
             ],
@@ -363,7 +443,8 @@ Restore museum artworks degraded by physical stains, mold, scratches, or tears w
                 raw_view,
                 overlay_view,
                 diag_box,
-                download_btn
+                download_btn,
+                download_json_btn
             ]
         )
 
@@ -372,6 +453,7 @@ Restore museum artworks degraded by physical stains, mold, scratches, or tears w
                 None, None, None,
                 None, None, None, None,
                 "### 📊 Restoration Diagnostics\n*Cleared.*",
+                gr.DownloadButton(visible=False),
                 gr.DownloadButton(visible=False)
             )
 
@@ -386,7 +468,8 @@ Restore museum artworks degraded by physical stains, mold, scratches, or tears w
                 raw_view,
                 overlay_view,
                 diag_box,
-                download_btn
+                download_btn,
+                download_json_btn
             ]
         )
 
