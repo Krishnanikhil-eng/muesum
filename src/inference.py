@@ -39,14 +39,25 @@ from dataset import pad_to_multiple_of_32, unpad
 from utils import tensor_to_uint8, ensure_dir
 from feathering import blend_with_boundary_feathering
 
+try:
+    import config as muesum_cfg
+except ImportError:
+    muesum_cfg = None
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Checkpoint Resolution & ModelManager Singleton
 # ──────────────────────────────────────────────────────────────────────────────
 def find_default_checkpoint() -> str:
     """Search prioritized checkpoint locations and return the first found path."""
+    if muesum_cfg is not None:
+        cp = muesum_cfg.resolve_checkpoint("baseline")
+        if os.path.exists(cp):
+            return cp
+
     candidates = [
         _ROOT_DIR / "checkpoints" / "baseline_run" / "best_model.pth",
+        _ROOT_DIR / "checkpoints" / "experimental_texture_model" / "best_model.pth",
         _ROOT_DIR / "checkpoints" / "best_model.pth",
         _ROOT_DIR / "outputs" / "experiments" / "exp_2000_baseline" / "best_model.pth",
         _ROOT_DIR / "outputs" / "experiments" / "exp_2000_perceptual" / "best_model.pth",

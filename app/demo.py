@@ -47,7 +47,12 @@ except ImportError:
     )
     sys.exit(1)
 
-# ── Import inference engine ───────────────────────────────────────────────────
+# ── Import inference engine and config ─────────────────────────────────────────
+try:
+    import config as muesum_cfg
+except ImportError:
+    muesum_cfg = None
+
 try:
     from inference import (
         restore_artwork_pipeline,
@@ -61,14 +66,20 @@ except ImportError as e:
     INFERENCE_ERROR = str(e)
 
 
-CHECKPOINT_OPTIONS = {
-    "Experimental Texture Model (Composite Loss — Recommended)": str(
-        _ROOT_DIR / "checkpoints" / "experimental_texture_model" / "best_model.pth"
-    ),
-    "Baseline ResNet34-UNet (Epoch 8 Checkpoint)": str(
-        _ROOT_DIR / "checkpoints" / "baseline_run" / "best_model.pth"
-    ),
-}
+if muesum_cfg is not None:
+    CHECKPOINT_OPTIONS = {
+        "Experimental Texture Model (Composite Loss — Recommended)": str(muesum_cfg.EXPERIMENTAL_CHECKPOINT_PATH),
+        "Baseline ResNet34-UNet (Epoch 8 Checkpoint)": str(muesum_cfg.BASELINE_CHECKPOINT_PATH),
+    }
+else:
+    CHECKPOINT_OPTIONS = {
+        "Experimental Texture Model (Composite Loss — Recommended)": str(
+            _ROOT_DIR / "checkpoints" / "experimental_texture_model" / "best_model.pth"
+        ),
+        "Baseline ResNet34-UNet (Epoch 8 Checkpoint)": str(
+            _ROOT_DIR / "checkpoints" / "baseline_run" / "best_model.pth"
+        ),
+    }
 
 
 # ──────────────────────────────────────────────────────────────────────────────
