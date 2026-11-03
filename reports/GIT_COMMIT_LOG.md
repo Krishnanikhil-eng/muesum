@@ -13,3 +13,7 @@
 | *init-1* | `9760432` | Initial repository commit | Initial project structure | N/A | Pre-mission |
 | *init-2* | `af4b08c` | Add project files | Core early files | N/A | Pre-mission |
 | *init-3* | `fa2825f` | Modify README | README.md | N/A | Pre-mission |
+| 1 | `85235e9` | Stage 0: Environment setup, gitignore, tracking logs | `.gitignore`, `reports/*_STATE.md`, inspection script | PASSED | 2026-11-04 01:10 |
+| 2 | `9138216` | Stage 0: Reusable inference engine & unit tests | `src/inference.py`, `tests/test_inference_pipeline.py` | 8/8 PASSED | 2026-11-04 01:10 |
+| 3 | `7cbc0f1` | Stage 0: Gradio restoration studio & workflow tests | `app/demo.py`, `scripts/verify_stage*.py` | PASSED | 2026-11-04 01:10 |
+| 4 | `a7cfcd5` | Stage 0: Dataset loading & simulation test harnesses | `src/dataset.py`, `src/train_unet.py`, `test_pipeline.py`| 6/6 PASSED | 2026-11-04 01:11 |
