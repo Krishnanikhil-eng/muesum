@@ -149,3 +149,4 @@ To achieve museum-grade craquelure consolidation in future iterations of MUESUM,
 The experimental ResNet34-UNet restoration model **fails** the requirement for visually convincing craquelure elimination on genuine historical artwork. While the underlying MUESUM software architecture operates reliably, preserving 100% of authentic pixels outside the mask, the generated inpainting introduces noticeable color shifts and light seam artifacts. 
 
 This honest finding demonstrates that MUESUM's evaluation framework is technically sound, capable of isolating failure modes, and will not claim success when visual and quantitative evidence demonstrates otherwise.
+
