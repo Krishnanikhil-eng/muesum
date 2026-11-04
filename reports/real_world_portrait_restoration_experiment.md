@@ -71,3 +71,4 @@ All generated outputs have been saved to `outputs/manual_tests/`:
    - The **Experimental Texture Model** incorporated high-frequency Sobel gradients and VGG perceptual features, producing richer textural shading across the synthesized cheek and hairline.
 4. **Scientific Authenticity Disclaimer**:
    In accordance with conservation ethics, this restoration represents a **plausible digital hypothesis**. Because more than 74% of the original information was physically destroyed, the neural network cannot reconstruct the true historical individuality of the subject's right eye or micro-pores; rather, it synthesizes a coherent, aesthetically harmonious approximation.
+
