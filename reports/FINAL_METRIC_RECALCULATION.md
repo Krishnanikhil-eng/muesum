@@ -91,3 +91,4 @@ The recalculated category metrics reveal a clear structural pattern:
 2. **Monochromatic & Planar Media (Baseline Model Advantage)**:
    - **Books & Manuscripts**: Baseline L1 model achieves higher PSNR on printed text and ink-on-parchment (+0.80 dB and +0.34 dB over experimental).
    - *Reason*: Pure L1 loss optimizes strictly for pixel-value variance without introducing perceptual high-frequency hallucination, which is advantageous on uniform white or parchment paper backgrounds.
+
